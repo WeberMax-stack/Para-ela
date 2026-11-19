@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Tem uma mensagem bloqueada pra você</title>
+  <link rel="stylesheet" href="style.css" />
+    <link rel="icon" type="image/png" href="coração.png" />
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Google Fonts: Fraunces (Serifada Expressiva) & Plus Jakarta Sans (UI Moderna) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,400;1,9..144,500&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap"
+    rel="stylesheet"
+  />
+
+
+
+ 
+</head>
+<body class="min-h-screen flex flex-col justify-between relative">
+
+  <!-- Canvas de Confetes para a Tela Final -->
+  <canvas
+    id="confetti-canvas"
+    class="fixed inset-0 pointer-events-none z-40 hidden"
+    aria-hidden="true"
+  ></canvas>
+
+  <!-- Toast Flutuante de Notificação -->
+  <div
+    id="toast"
+    role="status"
+    aria-live="polite"
+    class="fixed top-16 left-1/2 -translate-x-1/2 z-50 pointer-events-none opacity-0 -translate-y-2 transition-all duration-300 w-[90%] max-w-sm"
+  >
+    <div class="bg-[#26262E] text-cream text-xs sm:text-sm px-4 py-3 rounded-2xl shadow-2xl border border-gold/30 flex items-center justify-center gap-2.5 text-center">
+      <span id="toast-icon" class="text-base shrink-0">✨</span>
+      <span id="toast-text" class="font-medium">Mensagem copiada!</span>
+    </div>
+  </div>
+
+  <!-- Área Central do Minigame -->
+  <main class="flex-1 flex items-center justify-center px-4 py-6 z-10">
+    <div id="game-card" class="w-full max-w-lg bg-card border border-borderSubtle rounded-3xl p-6 sm:p-8 shadow-[0_24px_60px_-15px_rgba(0,0,0,0.65)] relative overflow-hidden">
+
+      <!-- Barra Superior Interna do Cartão (Progresso + Botão Discreto de Som) -->
+      <div class="flex items-center justify-between gap-3 mb-5">
+        <!-- Pílulas de Progresso das 3 Fases -->
+        <div class="flex items-center gap-2" aria-label="Progresso do desafio">
+          <span id="step-dot-1" class="h-1.5 w-6 rounded-full bg-borderSubtle transition-colors duration-300"></span>
+          <span id="step-dot-2" class="h-1.5 w-6 rounded-full bg-borderSubtle transition-colors duration-300"></span>
+          <span id="step-dot-3" class="h-1.5 w-6 rounded-full bg-borderSubtle transition-colors duration-300"></span>
+        </div>
+
+        <!-- Botão Discreto de Som no Canto Superior Direito do Cartão -->
+        <button
+          type="button"
+          id="btn-sound-toggle"
+          onclick="toggleSound()"
+          aria-label="Ativar ou desativar efeitos sonoros"
+          class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-bg/90 hover:bg-[#26262F] border border-borderSubtle text-xs text-muted hover:text-cream transition-colors cursor-pointer"
+        >
+          <span id="sound-icon">🔊</span>
+          <span id="sound-label">Som</span>
+        </button>
+      </div>
+
+      <!-- ========================================================= -->
+      <!-- TELA 0: INICIAL                                           -->
+      <!-- ========================================================= -->
+      <section id="screen-intro" class="animate-screen text-center space-y-7 py-2">
+        <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#141418] border border-borderSubtle text-xs font-medium text-gold tracking-wide">
+          <span>🔒</span>
+          <span>Mensagem Desbloqueável</span>
+        </div>
+
+        <div class="space-y-3">
+          <h1 class="font-serif text-3xl sm:text-4xl font-medium text-cream leading-[1.18] tracking-tight">
+            Quero te falar uma coisa, mas antes preparei 3 desafios
+          </h1>
+          <p class="text-sm sm:text-base text-muted leading-relaxed max-w-sm mx-auto">
+            Leva uns 15 segundos. Confia em mim, prometo que não é vírus kkkkk
+          </p>
+        </div>
+
+        <div class="pt-1">
+          <button
+            type="button"
+            onclick="startGame()"
+            class="game-interactive w-full sm:w-auto min-w-[200px] px-8 py-4 rounded-2xl bg-coral hover:bg-[#e38672] active:scale-[0.98] text-bg font-bold text-base shadow-[0_10px_28px_-6px_rgba(217,123,102,0.48)] transition-all duration-200 cursor-pointer"
+          >
+            Começar
+          </button>
+        </div>
+      </section>
+
+      <!-- ========================================================= -->
+      <!-- TELA 1: FASE 1/3 - SINTONIZE O SINAL                      -->
+      <!-- ========================================================= -->
+      <section id="screen-phase-1" class="hidden animate-screen space-y-6 py-2">
+        <div class="text-center space-y-2">
+          <span class="inline-block text-[11px] font-bold uppercase tracking-widest text-gold">
+            Fase 1 de 3 · Sintonia
+          </span>
+          <h2 class="font-serif text-2xl sm:text-3xl font-medium text-cream">
+            Sintonize o sinal
+          </h2>
+          <p class="text-xs sm:text-sm text-muted max-w-xs mx-auto">
+            Toque no botão quando o marcador passar pela faixa dourada.
+          </p>
+        </div>
+
+        <!-- Barra de Sintonia -->
+        <div class="py-3 space-y-3">
+          <div
+            id="tuner-wrapper"
+            class="relative h-12 rounded-2xl bg-bg border border-borderSubtle overflow-hidden shadow-inner"
+          >
+            <!-- Zona Alvo Dourada -->
+            <div
+              id="tuner-target"
+              class="absolute top-0 bottom-0 bg-gold/20 border-x-2 border-gold transition-colors duration-200"
+              style="left: 36%; width: 28%;"
+            >
+              <div class="w-full h-full flex items-center justify-center">
+                <span class="text-[10px] font-bold tracking-widest text-gold/80 uppercase">Sinal</span>
+              </div>
+            </div>
+
+            <!-- Marcador Móvel -->
+            <div
+              id="tuner-cursor"
+              class="absolute top-1.5 bottom-1.5 w-1.5 -translate-x-1/2 rounded-full bg-cream shadow-[0_0_12px_rgba(244,241,234,0.9)]"
+              style="left: 5%;"
+            ></div>
+          </div>
+
+          <p id="tuner-feedback" class="text-center text-xs font-medium h-4 text-muted transition-colors">
+            Aguardando frequência...
+          </p>
+        </div>
+
+        <div class="text-center">
+          <button
+            type="button"
+            id="btn-tune"
+            onclick="attemptTune()"
+            class="game-interactive w-full sm:w-auto min-w-[200px] px-8 py-3.5 rounded-2xl bg-coral hover:bg-[#e38672] active:scale-[0.98] disabled:opacity-50 text-bg font-bold text-sm sm:text-base shadow-[0_10px_25px_-6px_rgba(217,123,102,0.45)] transition-all cursor-pointer"
+          >
+            Sintonizar
+          </button>
+        </div>
+      </section>
+
+      <!-- ========================================================= -->
+      <!-- TELA 2: FASE 2/3 - CAPTURE AS FAÍSCAS                     -->
+      <!-- ========================================================= -->
+      <section id="screen-phase-2" class="hidden animate-screen space-y-5 py-2">
+        <div class="flex items-center justify-between gap-2">
+          <div>
+            <span class="block text-[11px] font-bold uppercase tracking-widest text-gold">
+              Fase 2 de 3 · Conexão
+            </span>
+            <h2 class="font-serif text-2xl sm:text-3xl font-medium text-cream">
+              Capture as faíscas
+            </h2>
+          </div>
+
+          <div class="px-3.5 py-1.5 rounded-full bg-bg border border-borderSubtle text-xs font-semibold text-gold shrink-0">
+            <span id="sparks-count">0</span> / 6
+          </div>
+        </div>
+
+        <p class="text-xs sm:text-sm text-muted">
+          Toque nas 6 faíscas luminosas flutuando abaixo.
+        </p>
+
+        <!-- Arena Interativa das Faíscas -->
+        <div
+          id="sparks-arena"
+          class="game-interactive relative w-full h-56 sm:h-64 rounded-2xl bg-bg/90 border border-borderSubtle overflow-hidden shadow-inner"
+        ></div>
+      </section>
+
+      <!-- ========================================================= -->
+      <!-- TELA 3: FASE 3/3 - DECODIFIQUE A MENSAGEM                 -->
+      <!-- ========================================================= -->
+      <section id="screen-phase-3" class="hidden animate-screen text-center space-y-6 py-2">
+        <div class="space-y-2">
+          <span class="inline-block text-[11px] font-bold uppercase tracking-widest text-gold">
+            Fase 3 de 3 · Quase lá
+          </span>
+          <h2 class="font-serif text-2xl sm:text-3xl font-medium text-cream">
+            Decodifique o destinatário
+          </h2>
+          <p class="text-xs sm:text-sm text-muted max-w-xs mx-auto">
+            Segure o botão abaixo até revelar para quem é essa mensagem.
+          </p>
+        </div>
+
+        <!-- Visor do Nome sendo Decodificado -->
+        <div class="py-2">
+          <div class="inline-block px-6 py-3 rounded-2xl bg-bg border border-borderSubtle shadow-inner">
+            <span
+              id="decode-name-display"
+              class="font-serif text-2xl sm:text-3xl tracking-[0.18em] text-gold font-medium"
+            >
+              ✦#@%&
+            </span>
+          </div>
+        </div>
+
+        <!-- Botão Circular com Anel de Progresso -->
+        <div class="flex flex-col items-center justify-center space-y-3">
+          <div class="relative w-36 h-36 flex items-center justify-center">
+            <svg class="w-36 h-36 pointer-events-none" viewBox="0 0 140 140" aria-hidden="true">
+              <circle
+                cx="70"
+                cy="70"
+                r="62"
+                fill="none"
+                stroke="#2E2E38"
+                stroke-width="5"
+              />
+              <circle
+                id="hold-progress-circle"
+                class="progress-ring-circle"
+                cx="70"
+                cy="70"
+                r="62"
+                fill="none"
+                stroke="#E5B96F"
+                stroke-width="5"
+                stroke-linecap="round"
+              />
+            </svg>
+
+            <button
+              type="button"
+              id="btn-hold-decode"
+              aria-label="Segure para decodificar a mensagem"
+              class="game-interactive absolute w-28 h-28 rounded-full bg-coral hover:bg-[#e38672] active:scale-95 text-bg font-bold text-xs sm:text-sm flex flex-col items-center justify-center gap-1 shadow-[0_10px_28px_-6px_rgba(217,123,102,0.5)] transition-transform cursor-pointer"
+            >
+              <span class="text-xl">🔓</span>
+              <span>Segurar</span>
+            </button>
+          </div>
+
+          <p id="hold-status-text" class="text-xs text-muted h-4">
+            Pressione e segure por 1,8s
+          </p>
+        </div>
+      </section>
+
+      <!-- ========================================================= -->
+      <!-- TELA FINAL: REVELAÇÃO (FOTO + MENSAGEM + BALÃO DE E-MAIL) -->
+      <!-- ========================================================= -->
+      <section id="screen-reveal" class="hidden animate-screen space-y-5 py-1">
+        <!-- Selo Superior Centralizado -->
+        <div class="text-center">
+          <div class="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-sage/15 border border-sage/40 text-[11px] font-bold uppercase tracking-widest text-sage">
+            <span>✦</span>
+            <span>MENSAGEM DESBLOQUEADA</span>
+          </div>
+        </div>
+
+        <!-- Moldura Editorial da Foto + Nome Dela em Destaque -->
+        <div class="flex flex-col items-center text-center space-y-3.5 pt-1">
+          <!-- Retrato / Polaroid Editorial Minimalista (oculto automaticamente se não houver foto) -->
+          <div
+            id="reveal-photo-frame"
+            class="hidden relative w-32 h-32 sm:w-36 sm:h-36 rounded-2xl p-1.5 bg-[#25252E] border border-gold/45 shadow-[0_14px_34px_-10px_rgba(229,185,111,0.32)] transition-transform duration-300 hover:scale-[1.02]"
+          >
+            <!-- Foto Estática ou Carregada -->
+            <img
+              id="reveal-photo-img"
+              src=""
+              alt="Foto especial"
+              onerror="handleRevealImageError()"
+              class="w-full h-full object-cover rounded-xl"
+            />
+          </div>
+
+          <!-- Nome Dela em Fraunces -->
+          <h2 class="font-serif text-3xl sm:text-4xl font-medium text-cream leading-tight">
+            Ei, <span id="reveal-name" class="italic text-gold">Giovanna</span>...
+          </h2>
+        </div>
+
+        <!-- Mensagem Principal Gentil e Sincera -->
+        <div class="bg-bg/90 border border-borderSubtle rounded-2xl p-4 sm:p-5 text-center shadow-inner">
+          <p
+            id="reveal-message"
+            class="font-serif text-lg sm:text-xl text-cream leading-relaxed font-normal"
+          >
+            Só queria dizer que te achei muito linda — e achei que valia a pena fazer algo diferente pra te contar isso, sem pressão nenhuma.
+          </p>
+        </div>
+
+        <!-- Balão de Escrita para Resposta por E-mail -->
+        <div class="pt-1 space-y-3">
+          <div
+            id="email-bubble-wrapper"
+            class="speech-bubble bg-[#26262F] border border-gold/30 focus-within:border-gold/75 rounded-2xl p-3.5 sm:p-4 shadow-lg transition-colors"
+          >
+            <div class="flex items-center justify-between mb-1.5">
+              <label for="reply-textarea" class="text-[11px] font-medium text-gold/90 flex items-center gap-1.5">
+                <span>💭</span>
+                <span>Quer me responder algo?</span>
+              </label>
+              <span id="email-target-badge" class="text-[10px] text-muted truncate max-w-[160px]"></span>
+            </div>
+
+            <textarea
+              id="reply-textarea"
+              rows="3"
+              maxlength="800"
+              placeholder="Escreve aqui o que você achou... (vai direto pro meu e-mail)"
+              class="w-full bg-transparent text-sm text-cream placeholder-muted/65 focus:outline-none resize-none leading-relaxed"
+            ></textarea>
+          </div>
+
+          <!-- Botão Principal: Mandar por e-mail -->
+          <button
+            type="button"
+            onclick="handleSendEmail()"
+            class="game-interactive w-full py-3.5 px-6 rounded-2xl bg-coral hover:bg-[#e38672] active:scale-[0.98] text-bg font-bold text-sm sm:text-base shadow-[0_10px_25px_-6px_rgba(217,123,102,0.48)] transition-all cursor-pointer flex items-center justify-center gap-2"
+          >
+            <span>Mandar por e-mail</span>
+            <span>✉️</span>
+          </button>
+
+          <!-- Ações Auxiliares Discretas: Copiar Mensagem e E-mail + Jogar de Novo -->
+          <div class="flex flex-col sm:flex-row items-center justify-between gap-2 pt-0.5 px-1">
+            <button
+              type="button"
+              onclick="handleCopyEmailAndMessage()"
+              class="text-xs text-muted hover:text-gold underline underline-offset-4 decoration-borderSubtle hover:decoration-gold/60 transition-colors cursor-pointer"
+            >
+              ou copiar mensagem e e-mail
+            </button>
+
+            <button
+              type="button"
+              onclick="resetGame()"
+              class="text-xs text-muted/80 hover:text-cream transition-colors cursor-pointer"
+            >
+              ↺ Jogar de novo
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Rodapé Discreto Dentro do Cartão -->
+      <div class="mt-6 pt-4 border-t border-borderSubtle/60 text-center">
+       
+      </div>
+
+    </div>
+  </main>
+
+  <!-- ========================================================= -->
+  <!-- MODAL DE PERSONALIZAÇÃO E EXPORTAÇÃO                      -->
+  <!-- ========================================================= -->
+  <div
+    id="personalize-modal"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="modal-title"
+    class="hidden fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto"
+  >
+    <div class="w-full max-w-md bg-card border border-borderSubtle rounded-3xl p-6 sm:p-7 shadow-2xl space-y-5 my-auto animate-screen">
+      <div class="flex items-start justify-between gap-3">
+        <div>
+          <h3 id="modal-title" class="font-serif text-xl sm:text-2xl text-cream font-medium">
+            Personalizar Minigame
+          </h3>
+          <p class="text-xs text-muted mt-0.5">
+            Configure a foto, o nome, a mensagem e o seu e-mail.
+          </p>
+        </div>
+        <button
+          type="button"
+          onclick="closePersonalizeModal()"
+          aria-label="Fechar janela de personalização"
+          class="w-8 h-8 rounded-full bg-bg hover:bg-borderSubtle text-muted hover:text-cream flex items-center justify-center text-sm transition-colors cursor-pointer"
+        >
+          ✕
+        </button>
+      </div>
+
+      <!-- Formulário de Campos -->
+      <div class="space-y-4">
+        <!-- 1. Nome dela -->
+        <div>
+          <label for="input-nome" class="block text-xs font-medium text-cream/90 mb-1.5">
+            1. Nome dela
+          </label>
+          <input
+            id="input-nome"
+            type="text"
+            maxlength="40"
+            placeholder="Ex: Giovanna"
+            class="w-full px-3.5 py-2.5 rounded-xl bg-bg border border-borderSubtle focus:border-gold focus:outline-none text-sm text-cream placeholder-muted/50"
+          />
+        </div>
+
+        <!-- 2. Sua mensagem / elogio -->
+        <div>
+          <label for="input-msg" class="block text-xs font-medium text-cream/90 mb-1.5">
+            2. Sua mensagem / elogio
+          </label>
+          <textarea
+            id="input-msg"
+            rows="3"
+            maxlength="260"
+            placeholder="Tava sem assunto para puxar hoje. Só queria dizer que você é muito linda — alguém já te disse isso hoje? Deveriam!"
+            class="w-full px-3.5 py-2.5 rounded-xl bg-bg border border-borderSubtle focus:border-gold focus:outline-none text-sm text-cream placeholder-muted/50 resize-none"
+          ></textarea>
+        </div>
+
+        <!-- 3. Foto dela (Upload com redimensionamento automático ou URL) -->
+        <div class="space-y-2">
+          <label class="block text-xs font-medium text-cream/90">
+            3. Foto dela <span class="text-muted font-normal">(opcional)</span>
+          </label>
+
+          <div class="flex items-center gap-3 p-3 rounded-2xl bg-bg border border-borderSubtle">
+            <!-- Miniatura de Pré-visualização -->
+            <div class="w-16 h-16 rounded-xl bg-[#1E1E24] border border-gold/30 overflow-hidden shrink-0 flex items-center justify-center">
+              <img
+                id="modal-photo-preview"
+                src=""
+                alt="Prévia da foto"
+                onerror="handleModalPreviewError()"
+                class="hidden w-full h-full object-cover"
+              />
+              <span id="modal-photo-empty" class="text-lg text-gold/60">✦</span>
+            </div>
+
+            <div class="flex-1 min-w-0 space-y-2">
+              <div class="flex flex-wrap items-center gap-2">
+                <label
+                  for="input-foto-file"
+                  class="px-3 py-1.5 rounded-lg bg-[#26262F] hover:bg-borderSubtle border border-borderSubtle text-xs font-medium text-cream cursor-pointer transition-colors"
+                >
+                  📷 Escolher foto
+                </label>
+                <input
+                  id="input-foto-file"
+                  type="file"
+                  accept="image/*"
+                  onchange="handlePhotoFileUpload(event)"
+                  class="hidden"
+                />
+
+                <button
+                  type="button"
+                  id="btn-remove-photo"
+                  onclick="removeConfiguredPhoto()"
+                  class="hidden px-2.5 py-1.5 rounded-lg text-[11px] text-coral hover:bg-coral/10 transition-colors cursor-pointer"
+                >
+                  Remover foto
+                </button>
+              </div>
+
+              <input
+                id="input-foto-url"
+                type="url"
+                oninput="handlePhotoUrlInput(this.value)"
+                placeholder="Ou cole o link (URL) da imagem..."
+                class="w-full px-2.5 py-1.5 rounded-lg bg-[#141418] border border-borderSubtle focus:border-gold focus:outline-none text-xs text-cream placeholder-muted/50"
+              />
+            </div>
+          </div>
+          <p class="text-[11px] text-muted">
+            Fotos enviadas do aparelho são otimizadas automaticamente (480×480px) para ficarem embutidas no arquivo HTML.
+          </p>
+        </div>
+
+        <!-- 4. Seu e-mail de destino -->
+        <div>
+          <label for="input-email" class="block text-xs font-medium text-cream/90 mb-1.5">
+            4. Seu e-mail de destino
+          </label>
+          <input
+            id="input-email"
+            type="email"
+            maxlength="100"
+            placeholder="voce@exemplo.com"
+            class="w-full px-3.5 py-2.5 rounded-xl bg-bg border border-borderSubtle focus:border-gold focus:outline-none text-sm text-cream placeholder-muted/50"
+          />
+        </div>
+
+        <!-- 5. Assunto do e-mail -->
+        <div>
+          <label for="input-assunto" class="block text-xs font-medium text-cream/90 mb-1.5">
+            5. Assunto do e-mail
+          </label>
+          <input
+            id="input-assunto"
+            type="text"
+            maxlength="100"
+            placeholder="Oi! Joguei seu minigame ✨"
+            class="w-full px-3.5 py-2.5 rounded-xl bg-bg border border-borderSubtle focus:border-gold focus:outline-none text-sm text-cream placeholder-muted/50"
+          />
+        </div>
+      </div>
+
+      <!-- Botões de Ação do Painel -->
+      <div class="pt-2 space-y-2.5">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+          <button
+            type="button"
+            onclick="saveAndTestConfig()"
+            class="py-3 px-4 rounded-xl bg-coral hover:bg-[#e38672] text-bg font-bold text-xs sm:text-sm transition-colors cursor-pointer"
+          >
+            Salvar e testar
+          </button>
+
+          <button
+            type="button"
+            onclick="saveAndPreviewReveal()"
+            class="py-3 px-4 rounded-xl bg-[#26262F] hover:bg-borderSubtle border border-gold/40 text-gold font-semibold text-xs sm:text-sm transition-colors cursor-pointer"
+          >
+            Ver tela final ✨
+          </button>
+        </div>
+
+        <button
+          type="button"
+          onclick="downloadStandaloneHTML()"
+          class="w-full py-2.5 px-4 rounded-xl bg-bg hover:bg-[#26262F] border border-borderSubtle text-cream text-xs font-semibold transition-colors cursor-pointer flex items-center justify-center gap-1.5"
+        >
+          <span>⬇️</span>
+          <span>Baixar arquivo .html pronto</span>
+        </button>
+
+        <button
+          type="button"
+          onclick="copyPersonalizedLink()"
+          class="w-full py-2.5 px-4 rounded-xl bg-bg hover:bg-[#26262F] border border-borderSubtle text-muted hover:text-cream text-xs font-medium transition-colors cursor-pointer flex items-center justify-center gap-1.5"
+        >
+          <span>🔗</span>
+          <span>Copiar link</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================= -->
+  <!-- LÓGICA DO JOGO, ÁUDIO WEB AUDIO API E PERSONALIZAÇÃO      -->
+
+   <script src="script.js"></script>
+</body>
+</html>
