@@ -1,0 +1,1720 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Tem uma mensagem bloqueada pra você</title>
+    <link rel="icon" type="image/png" href="coração.png" />
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Google Fonts: Fraunces (Serifada Expressiva) & Plus Jakarta Sans (UI Moderna) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,400;1,9..144,500&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap"
+    rel="stylesheet"
+  />
+
+  <!-- Configuração de Cores e Tipografia -->
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],
+            serif: ['"Fraunces"', 'Georgia', 'serif'],
+          },
+          colors: {
+            bg: '#141418',
+            card: '#1E1E24',
+            borderSubtle: '#2E2E38',
+            cream: '#F4F1EA',
+            muted: '#A39E93',
+            coral: '#D97B66',
+            gold: '#E5B96F',
+            sage: '#7FA88A',
+          },
+        },
+      },
+    };
+  </script>
+
+  <style>
+    /* Base e atmosfera Cozy Arcade Editorial */
+    html, body {
+      background-color: #141418;
+      color: #F4F1EA;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+
+    body {
+      background-image:
+        radial-gradient(circle at 50% 0%, rgba(217, 123, 102, 0.08) 0%, transparent 55%),
+        radial-gradient(circle at 85% 90%, rgba(229, 185, 111, 0.06) 0%, transparent 50%),
+        radial-gradient(rgba(244, 241, 234, 0.03) 1px, transparent 0);
+      background-size: 100% 100%, 100% 100%, 24px 24px;
+    }
+
+    /* Previne seleção de texto e menu de toque prolongado nos controles do jogo */
+    .game-interactive {
+      -webkit-user-select: none;
+      user-select: none;
+      -webkit-touch-callout: none;
+      touch-action: manipulation;
+    }
+
+    /* Animação suave de entrada das telas */
+    @keyframes screenEnter {
+      from {
+        opacity: 0;
+        transform: translateY(12px) scale(0.985);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    .animate-screen {
+      animation: screenEnter 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    /* Tremor suave de feedback ao errar o timing na Fase 1 */
+    @keyframes gentleShake {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-6px); }
+      50% { transform: translateX(6px); }
+      75% { transform: translateX(-4px); }
+    }
+
+    .animate-shake {
+      animation: gentleShake 0.35s ease-in-out;
+    }
+
+    /* Brilho pulsante das faíscas na Fase 2 */
+    @keyframes sparkPulse {
+      0%, 100% {
+        transform: scale(1);
+        filter: drop-shadow(0 0 8px rgba(242, 184, 75, 0.65));
+      }
+      50% {
+        transform: scale(1.16);
+        filter: drop-shadow(0 0 14px rgba(232, 111, 82, 0.85));
+      }
+    }
+
+    .spark-glow {
+      animation: sparkPulse 2s ease-in-out infinite;
+    }
+
+    /* Anel de progresso SVG da Fase 3 */
+    .progress-ring-circle {
+      transition: stroke-dashoffset 0.05s linear;
+      transform: rotate(-90deg);
+      transform-origin: 50% 50%;
+    }
+
+    /* Rabicho sutil do balão de resposta por e-mail */
+    .speech-bubble {
+      position: relative;
+    }
+    .speech-bubble::before {
+      content: '';
+      position: absolute;
+      top: -7px;
+      left: 26px;
+      width: 14px;
+      height: 14px;
+      background-color: #26262F;
+      border-top: 1px solid rgba(229, 185, 111, 0.28);
+      border-left: 1px solid rgba(229, 185, 111, 0.28);
+      transform: rotate(45deg);
+      border-top-left-radius: 3px;
+    }
+
+    /* Scrollbar discreta no modal */
+    ::-webkit-scrollbar {
+      width: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #141418;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #2E2E38;
+      border-radius: 9999px;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between relative">
+
+  <!-- Canvas de Confetes para a Tela Final -->
+  <canvas
+    id="confetti-canvas"
+    class="fixed inset-0 pointer-events-none z-40 hidden"
+    aria-hidden="true"
+  ></canvas>
+
+  <!-- Toast Flutuante de Notificação -->
+  <div
+    id="toast"
+    role="status"
+    aria-live="polite"
+    class="fixed top-16 left-1/2 -translate-x-1/2 z-50 pointer-events-none opacity-0 -translate-y-2 transition-all duration-300 w-[90%] max-w-sm"
+  >
+    <div class="bg-[#26262E] text-cream text-xs sm:text-sm px-4 py-3 rounded-2xl shadow-2xl border border-gold/30 flex items-center justify-center gap-2.5 text-center">
+      <span id="toast-icon" class="text-base shrink-0">✨</span>
+      <span id="toast-text" class="font-medium">Mensagem copiada!</span>
+    </div>
+  </div>
+
+  <!-- Área Central do Minigame -->
+  <main class="flex-1 flex items-center justify-center px-4 py-6 z-10">
+    <div id="game-card" class="w-full max-w-lg bg-card border border-borderSubtle rounded-3xl p-6 sm:p-8 shadow-[0_24px_60px_-15px_rgba(0,0,0,0.65)] relative overflow-hidden">
+
+      <!-- Barra Superior Interna do Cartão (Progresso + Botão Discreto de Som) -->
+      <div class="flex items-center justify-between gap-3 mb-5">
+        <!-- Pílulas de Progresso das 3 Fases -->
+        <div class="flex items-center gap-2" aria-label="Progresso do desafio">
+          <span id="step-dot-1" class="h-1.5 w-6 rounded-full bg-borderSubtle transition-colors duration-300"></span>
+          <span id="step-dot-2" class="h-1.5 w-6 rounded-full bg-borderSubtle transition-colors duration-300"></span>
+          <span id="step-dot-3" class="h-1.5 w-6 rounded-full bg-borderSubtle transition-colors duration-300"></span>
+        </div>
+
+        <!-- Botão Discreto de Som no Canto Superior Direito do Cartão -->
+        <button
+          type="button"
+          id="btn-sound-toggle"
+          onclick="toggleSound()"
+          aria-label="Ativar ou desativar efeitos sonoros"
+          class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-bg/90 hover:bg-[#26262F] border border-borderSubtle text-xs text-muted hover:text-cream transition-colors cursor-pointer"
+        >
+          <span id="sound-icon">🔊</span>
+          <span id="sound-label">Som</span>
+        </button>
+      </div>
+
+      <!-- ========================================================= -->
+      <!-- TELA 0: INICIAL                                           -->
+      <!-- ========================================================= -->
+      <section id="screen-intro" class="animate-screen text-center space-y-7 py-2">
+        <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#141418] border border-borderSubtle text-xs font-medium text-gold tracking-wide">
+          <span>🔒</span>
+          <span>Mensagem Desbloqueável</span>
+        </div>
+
+        <div class="space-y-3">
+          <h1 class="font-serif text-3xl sm:text-4xl font-medium text-cream leading-[1.18] tracking-tight">
+            Quero te falar uma coisa, mas antes preparei 3 desafios
+          </h1>
+          <p class="text-sm sm:text-base text-muted leading-relaxed max-w-sm mx-auto">
+            Leva uns 15 segundos. Confia em mim, prometo que não é vírus kkkkk
+          </p>
+        </div>
+
+        <div class="pt-1">
+          <button
+            type="button"
+            onclick="startGame()"
+            class="game-interactive w-full sm:w-auto min-w-[200px] px-8 py-4 rounded-2xl bg-coral hover:bg-[#e38672] active:scale-[0.98] text-bg font-bold text-base shadow-[0_10px_28px_-6px_rgba(217,123,102,0.48)] transition-all duration-200 cursor-pointer"
+          >
+            Começar
+          </button>
+        </div>
+      </section>
+
+      <!-- ========================================================= -->
+      <!-- TELA 1: FASE 1/3 - SINTONIZE O SINAL                      -->
+      <!-- ========================================================= -->
+      <section id="screen-phase-1" class="hidden animate-screen space-y-6 py-2">
+        <div class="text-center space-y-2">
+          <span class="inline-block text-[11px] font-bold uppercase tracking-widest text-gold">
+            Fase 1 de 3 · Sintonia
+          </span>
+          <h2 class="font-serif text-2xl sm:text-3xl font-medium text-cream">
+            Sintonize o sinal
+          </h2>
+          <p class="text-xs sm:text-sm text-muted max-w-xs mx-auto">
+            Toque no botão quando o marcador passar pela faixa dourada.
+          </p>
+        </div>
+
+        <!-- Barra de Sintonia -->
+        <div class="py-3 space-y-3">
+          <div
+            id="tuner-wrapper"
+            class="relative h-12 rounded-2xl bg-bg border border-borderSubtle overflow-hidden shadow-inner"
+          >
+            <!-- Zona Alvo Dourada -->
+            <div
+              id="tuner-target"
+              class="absolute top-0 bottom-0 bg-gold/20 border-x-2 border-gold transition-colors duration-200"
+              style="left: 36%; width: 28%;"
+            >
+              <div class="w-full h-full flex items-center justify-center">
+                <span class="text-[10px] font-bold tracking-widest text-gold/80 uppercase">Sinal</span>
+              </div>
+            </div>
+
+            <!-- Marcador Móvel -->
+            <div
+              id="tuner-cursor"
+              class="absolute top-1.5 bottom-1.5 w-1.5 -translate-x-1/2 rounded-full bg-cream shadow-[0_0_12px_rgba(244,241,234,0.9)]"
+              style="left: 5%;"
+            ></div>
+          </div>
+
+          <p id="tuner-feedback" class="text-center text-xs font-medium h-4 text-muted transition-colors">
+            Aguardando frequência...
+          </p>
+        </div>
+
+        <div class="text-center">
+          <button
+            type="button"
+            id="btn-tune"
+            onclick="attemptTune()"
+            class="game-interactive w-full sm:w-auto min-w-[200px] px-8 py-3.5 rounded-2xl bg-coral hover:bg-[#e38672] active:scale-[0.98] disabled:opacity-50 text-bg font-bold text-sm sm:text-base shadow-[0_10px_25px_-6px_rgba(217,123,102,0.45)] transition-all cursor-pointer"
+          >
+            Sintonizar
+          </button>
+        </div>
+      </section>
+
+      <!-- ========================================================= -->
+      <!-- TELA 2: FASE 2/3 - CAPTURE AS FAÍSCAS                     -->
+      <!-- ========================================================= -->
+      <section id="screen-phase-2" class="hidden animate-screen space-y-5 py-2">
+        <div class="flex items-center justify-between gap-2">
+          <div>
+            <span class="block text-[11px] font-bold uppercase tracking-widest text-gold">
+              Fase 2 de 3 · Conexão
+            </span>
+            <h2 class="font-serif text-2xl sm:text-3xl font-medium text-cream">
+              Capture as faíscas
+            </h2>
+          </div>
+
+          <div class="px-3.5 py-1.5 rounded-full bg-bg border border-borderSubtle text-xs font-semibold text-gold shrink-0">
+            <span id="sparks-count">0</span> / 6
+          </div>
+        </div>
+
+        <p class="text-xs sm:text-sm text-muted">
+          Toque nas 6 faíscas luminosas flutuando abaixo.
+        </p>
+
+        <!-- Arena Interativa das Faíscas -->
+        <div
+          id="sparks-arena"
+          class="game-interactive relative w-full h-56 sm:h-64 rounded-2xl bg-bg/90 border border-borderSubtle overflow-hidden shadow-inner"
+        ></div>
+      </section>
+
+      <!-- ========================================================= -->
+      <!-- TELA 3: FASE 3/3 - DECODIFIQUE A MENSAGEM                 -->
+      <!-- ========================================================= -->
+      <section id="screen-phase-3" class="hidden animate-screen text-center space-y-6 py-2">
+        <div class="space-y-2">
+          <span class="inline-block text-[11px] font-bold uppercase tracking-widest text-gold">
+            Fase 3 de 3 · Quase lá
+          </span>
+          <h2 class="font-serif text-2xl sm:text-3xl font-medium text-cream">
+            Decodifique o destinatário
+          </h2>
+          <p class="text-xs sm:text-sm text-muted max-w-xs mx-auto">
+            Segure o botão abaixo até revelar para quem é essa mensagem.
+          </p>
+        </div>
+
+        <!-- Visor do Nome sendo Decodificado -->
+        <div class="py-2">
+          <div class="inline-block px-6 py-3 rounded-2xl bg-bg border border-borderSubtle shadow-inner">
+            <span
+              id="decode-name-display"
+              class="font-serif text-2xl sm:text-3xl tracking-[0.18em] text-gold font-medium"
+            >
+              ✦#@%&
+            </span>
+          </div>
+        </div>
+
+        <!-- Botão Circular com Anel de Progresso -->
+        <div class="flex flex-col items-center justify-center space-y-3">
+          <div class="relative w-36 h-36 flex items-center justify-center">
+            <svg class="w-36 h-36 pointer-events-none" viewBox="0 0 140 140" aria-hidden="true">
+              <circle
+                cx="70"
+                cy="70"
+                r="62"
+                fill="none"
+                stroke="#2E2E38"
+                stroke-width="5"
+              />
+              <circle
+                id="hold-progress-circle"
+                class="progress-ring-circle"
+                cx="70"
+                cy="70"
+                r="62"
+                fill="none"
+                stroke="#E5B96F"
+                stroke-width="5"
+                stroke-linecap="round"
+              />
+            </svg>
+
+            <button
+              type="button"
+              id="btn-hold-decode"
+              aria-label="Segure para decodificar a mensagem"
+              class="game-interactive absolute w-28 h-28 rounded-full bg-coral hover:bg-[#e38672] active:scale-95 text-bg font-bold text-xs sm:text-sm flex flex-col items-center justify-center gap-1 shadow-[0_10px_28px_-6px_rgba(217,123,102,0.5)] transition-transform cursor-pointer"
+            >
+              <span class="text-xl">🔓</span>
+              <span>Segurar</span>
+            </button>
+          </div>
+
+          <p id="hold-status-text" class="text-xs text-muted h-4">
+            Pressione e segure por 1,8s
+          </p>
+        </div>
+      </section>
+
+      <!-- ========================================================= -->
+      <!-- TELA FINAL: REVELAÇÃO (FOTO + MENSAGEM + BALÃO DE E-MAIL) -->
+      <!-- ========================================================= -->
+      <section id="screen-reveal" class="hidden animate-screen space-y-5 py-1">
+        <!-- Selo Superior Centralizado -->
+        <div class="text-center">
+          <div class="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-sage/15 border border-sage/40 text-[11px] font-bold uppercase tracking-widest text-sage">
+            <span>✦</span>
+            <span>MENSAGEM DESBLOQUEADA</span>
+          </div>
+        </div>
+
+        <!-- Moldura Editorial da Foto + Nome Dela em Destaque -->
+        <div class="flex flex-col items-center text-center space-y-3.5 pt-1">
+          <!-- Retrato / Polaroid Editorial Minimalista (oculto automaticamente se não houver foto) -->
+          <div
+            id="reveal-photo-frame"
+            class="hidden relative w-32 h-32 sm:w-36 sm:h-36 rounded-2xl p-1.5 bg-[#25252E] border border-gold/45 shadow-[0_14px_34px_-10px_rgba(229,185,111,0.32)] transition-transform duration-300 hover:scale-[1.02]"
+          >
+            <!-- Foto Estática ou Carregada -->
+            <img
+              id="reveal-photo-img"
+              src=""
+              alt="Foto especial"
+              onerror="handleRevealImageError()"
+              class="w-full h-full object-cover rounded-xl"
+            />
+          </div>
+
+          <!-- Nome Dela em Fraunces -->
+          <h2 class="font-serif text-3xl sm:text-4xl font-medium text-cream leading-tight">
+            Ei, <span id="reveal-name" class="italic text-gold">Giovanna</span>...
+          </h2>
+        </div>
+
+        <!-- Mensagem Principal Gentil e Sincera -->
+        <div class="bg-bg/90 border border-borderSubtle rounded-2xl p-4 sm:p-5 text-center shadow-inner">
+          <p
+            id="reveal-message"
+            class="font-serif text-lg sm:text-xl text-cream leading-relaxed font-normal"
+          >
+            Só queria dizer que te achei muito linda — e achei que valia a pena fazer algo diferente pra te contar isso, sem pressão nenhuma.
+          </p>
+        </div>
+
+        <!-- Balão de Escrita para Resposta por E-mail -->
+        <div class="pt-1 space-y-3">
+          <div
+            id="email-bubble-wrapper"
+            class="speech-bubble bg-[#26262F] border border-gold/30 focus-within:border-gold/75 rounded-2xl p-3.5 sm:p-4 shadow-lg transition-colors"
+          >
+            <div class="flex items-center justify-between mb-1.5">
+              <label for="reply-textarea" class="text-[11px] font-medium text-gold/90 flex items-center gap-1.5">
+                <span>💭</span>
+                <span>Quer me responder algo?</span>
+              </label>
+              <span id="email-target-badge" class="text-[10px] text-muted truncate max-w-[160px]"></span>
+            </div>
+
+            <textarea
+              id="reply-textarea"
+              rows="3"
+              maxlength="800"
+              placeholder="Escreve aqui o que você achou... (vai direto pro meu e-mail)"
+              class="w-full bg-transparent text-sm text-cream placeholder-muted/65 focus:outline-none resize-none leading-relaxed"
+            ></textarea>
+          </div>
+
+          <!-- Botão Principal: Mandar por e-mail -->
+          <button
+            type="button"
+            onclick="handleSendEmail()"
+            class="game-interactive w-full py-3.5 px-6 rounded-2xl bg-coral hover:bg-[#e38672] active:scale-[0.98] text-bg font-bold text-sm sm:text-base shadow-[0_10px_25px_-6px_rgba(217,123,102,0.48)] transition-all cursor-pointer flex items-center justify-center gap-2"
+          >
+            <span>Mandar por e-mail</span>
+            <span>✉️</span>
+          </button>
+
+          <!-- Ações Auxiliares Discretas: Copiar Mensagem e E-mail + Jogar de Novo -->
+          <div class="flex flex-col sm:flex-row items-center justify-between gap-2 pt-0.5 px-1">
+            <button
+              type="button"
+              onclick="handleCopyEmailAndMessage()"
+              class="text-xs text-muted hover:text-gold underline underline-offset-4 decoration-borderSubtle hover:decoration-gold/60 transition-colors cursor-pointer"
+            >
+              ou copiar mensagem e e-mail
+            </button>
+
+            <button
+              type="button"
+              onclick="resetGame()"
+              class="text-xs text-muted/80 hover:text-cream transition-colors cursor-pointer"
+            >
+              ↺ Jogar de novo
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Rodapé Discreto Dentro do Cartão -->
+      <div class="mt-6 pt-4 border-t border-borderSubtle/60 text-center">
+       
+      </div>
+
+    </div>
+  </main>
+
+  <!-- ========================================================= -->
+  <!-- MODAL DE PERSONALIZAÇÃO E EXPORTAÇÃO                      -->
+  <!-- ========================================================= -->
+  <div
+    id="personalize-modal"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="modal-title"
+    class="hidden fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto"
+  >
+    <div class="w-full max-w-md bg-card border border-borderSubtle rounded-3xl p-6 sm:p-7 shadow-2xl space-y-5 my-auto animate-screen">
+      <div class="flex items-start justify-between gap-3">
+        <div>
+          <h3 id="modal-title" class="font-serif text-xl sm:text-2xl text-cream font-medium">
+            Personalizar Minigame
+          </h3>
+          <p class="text-xs text-muted mt-0.5">
+            Configure a foto, o nome, a mensagem e o seu e-mail.
+          </p>
+        </div>
+        <button
+          type="button"
+          onclick="closePersonalizeModal()"
+          aria-label="Fechar janela de personalização"
+          class="w-8 h-8 rounded-full bg-bg hover:bg-borderSubtle text-muted hover:text-cream flex items-center justify-center text-sm transition-colors cursor-pointer"
+        >
+          ✕
+        </button>
+      </div>
+
+      <!-- Formulário de Campos -->
+      <div class="space-y-4">
+        <!-- 1. Nome dela -->
+        <div>
+          <label for="input-nome" class="block text-xs font-medium text-cream/90 mb-1.5">
+            1. Nome dela
+          </label>
+          <input
+            id="input-nome"
+            type="text"
+            maxlength="40"
+            placeholder="Ex: Giovanna"
+            class="w-full px-3.5 py-2.5 rounded-xl bg-bg border border-borderSubtle focus:border-gold focus:outline-none text-sm text-cream placeholder-muted/50"
+          />
+        </div>
+
+        <!-- 2. Sua mensagem / elogio -->
+        <div>
+          <label for="input-msg" class="block text-xs font-medium text-cream/90 mb-1.5">
+            2. Sua mensagem / elogio
+          </label>
+          <textarea
+            id="input-msg"
+            rows="3"
+            maxlength="260"
+            placeholder="Tava sem assunto para puxar hoje. Só queria dizer que você é muito linda — alguém já te disso isso hoje? Deveriam!"
+            class="w-full px-3.5 py-2.5 rounded-xl bg-bg border border-borderSubtle focus:border-gold focus:outline-none text-sm text-cream placeholder-muted/50 resize-none"
+          ></textarea>
+        </div>
+
+        <!-- 3. Foto dela (Upload com redimensionamento automático ou URL) -->
+        <div class="space-y-2">
+          <label class="block text-xs font-medium text-cream/90">
+            3. Foto dela <span class="text-muted font-normal">(opcional)</span>
+          </label>
+
+          <div class="flex items-center gap-3 p-3 rounded-2xl bg-bg border border-borderSubtle">
+            <!-- Miniatura de Pré-visualização -->
+            <div class="w-16 h-16 rounded-xl bg-[#1E1E24] border border-gold/30 overflow-hidden shrink-0 flex items-center justify-center">
+              <img
+                id="modal-photo-preview"
+                src=""
+                alt="Prévia da foto"
+                onerror="handleModalPreviewError()"
+                class="hidden w-full h-full object-cover"
+              />
+              <span id="modal-photo-empty" class="text-lg text-gold/60">✦</span>
+            </div>
+
+            <div class="flex-1 min-w-0 space-y-2">
+              <div class="flex flex-wrap items-center gap-2">
+                <label
+                  for="input-foto-file"
+                  class="px-3 py-1.5 rounded-lg bg-[#26262F] hover:bg-borderSubtle border border-borderSubtle text-xs font-medium text-cream cursor-pointer transition-colors"
+                >
+                  📷 Escolher foto
+                </label>
+                <input
+                  id="input-foto-file"
+                  type="file"
+                  accept="image/*"
+                  onchange="handlePhotoFileUpload(event)"
+                  class="hidden"
+                />
+
+                <button
+                  type="button"
+                  id="btn-remove-photo"
+                  onclick="removeConfiguredPhoto()"
+                  class="hidden px-2.5 py-1.5 rounded-lg text-[11px] text-coral hover:bg-coral/10 transition-colors cursor-pointer"
+                >
+                  Remover foto
+                </button>
+              </div>
+
+              <input
+                id="input-foto-url"
+                type="url"
+                oninput="handlePhotoUrlInput(this.value)"
+                placeholder="Ou cole o link (URL) da imagem..."
+                class="w-full px-2.5 py-1.5 rounded-lg bg-[#141418] border border-borderSubtle focus:border-gold focus:outline-none text-xs text-cream placeholder-muted/50"
+              />
+            </div>
+          </div>
+          <p class="text-[11px] text-muted">
+            Fotos enviadas do aparelho são otimizadas automaticamente (480×480px) para ficarem embutidas no arquivo HTML.
+          </p>
+        </div>
+
+        <!-- 4. Seu e-mail de destino -->
+        <div>
+          <label for="input-email" class="block text-xs font-medium text-cream/90 mb-1.5">
+            4. Seu e-mail de destino
+          </label>
+          <input
+            id="input-email"
+            type="email"
+            maxlength="100"
+            placeholder="voce@exemplo.com"
+            class="w-full px-3.5 py-2.5 rounded-xl bg-bg border border-borderSubtle focus:border-gold focus:outline-none text-sm text-cream placeholder-muted/50"
+          />
+        </div>
+
+        <!-- 5. Assunto do e-mail -->
+        <div>
+          <label for="input-assunto" class="block text-xs font-medium text-cream/90 mb-1.5">
+            5. Assunto do e-mail
+          </label>
+          <input
+            id="input-assunto"
+            type="text"
+            maxlength="100"
+            placeholder="Oi! Joguei seu minigame ✨"
+            class="w-full px-3.5 py-2.5 rounded-xl bg-bg border border-borderSubtle focus:border-gold focus:outline-none text-sm text-cream placeholder-muted/50"
+          />
+        </div>
+      </div>
+
+      <!-- Botões de Ação do Painel -->
+      <div class="pt-2 space-y-2.5">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+          <button
+            type="button"
+            onclick="saveAndTestConfig()"
+            class="py-3 px-4 rounded-xl bg-coral hover:bg-[#e38672] text-bg font-bold text-xs sm:text-sm transition-colors cursor-pointer"
+          >
+            Salvar e testar
+          </button>
+
+          <button
+            type="button"
+            onclick="saveAndPreviewReveal()"
+            class="py-3 px-4 rounded-xl bg-[#26262F] hover:bg-borderSubtle border border-gold/40 text-gold font-semibold text-xs sm:text-sm transition-colors cursor-pointer"
+          >
+            Ver tela final ✨
+          </button>
+        </div>
+
+        <button
+          type="button"
+          onclick="downloadStandaloneHTML()"
+          class="w-full py-2.5 px-4 rounded-xl bg-bg hover:bg-[#26262F] border border-borderSubtle text-cream text-xs font-semibold transition-colors cursor-pointer flex items-center justify-center gap-1.5"
+        >
+          <span>⬇️</span>
+          <span>Baixar arquivo .html pronto</span>
+        </button>
+
+        <button
+          type="button"
+          onclick="copyPersonalizedLink()"
+          class="w-full py-2.5 px-4 rounded-xl bg-bg hover:bg-[#26262F] border border-borderSubtle text-muted hover:text-cream text-xs font-medium transition-colors cursor-pointer flex items-center justify-center gap-1.5"
+        >
+          <span>🔗</span>
+          <span>Copiar link</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================= -->
+  <!-- LÓGICA DO JOGO, ÁUDIO WEB AUDIO API E PERSONALIZAÇÃO      -->
+  <!-- ========================================================= -->
+  <script>
+    // Configuração padrão (atualizada automaticamente ao baixar o arquivo HTML personalizado)
+    // Para usar uma FOTO ESTÁTICA fixa, cole o link da imagem em "foto" (ex: "https://site.com/foto.jpg").
+    // Para NÃO EXIBIR nenhuma foto na tela final, deixe "foto": "".
+    const DEFAULT_CONFIG = /*__CONFIG_START__*/{
+      "nome": "Giovanna",
+      "msg": "Tava sem assunto para puxar hoje. Só queria dizer que você é muito linda alguém já te disso isso hoje? Deveriam!",
+      "foto": "",
+      "email": "",
+      "assunto": "Oi! Joguei seu minigame ✨"
+    }/*__CONFIG_END__*/;
+
+    const STORAGE_KEY = 'cozy_flirt_minigame_email_v2';
+    let config = { ...DEFAULT_CONFIG };
+    let draftPhotoData = '';
+    const HOLD_DURATION_MS = 1800; // 1.8 segundos
+    const RING_CIRCUMFERENCE = 2 * Math.PI * 62; // ~389.56
+    const SCRAMBLE_CHARS = '✦#@%&*?!§∆◊';
+
+    // Estado de Áudio e Navegação
+    let soundEnabled = true;
+    let audioCtx = null;
+    let currentScreen = 'screen-intro';
+    let toastTimer = null;
+
+    // Estado da Fase 1 (Sintonia)
+    let tunerAnimId = null;
+    let phase1Locked = false;
+    let tunerPos = 5;
+    let tunerDir = 1;
+    let tunerTargetStart = 36;
+    let tunerTargetWidth = 28;
+
+    // Estado da Fase 2 (Faíscas)
+    const TOTAL_SPARKS = 6;
+    let sparksAnimId = null;
+    let sparksList = [];
+    let sparksCollected = 0;
+
+    // Estado da Fase 3 (Decodificação)
+    let holdAnimId = null;
+    let isHolding = false;
+    let holdProgress = 0;
+    let phase3Completed = false;
+
+    // Estado dos Confetes
+    let confettiAnimId = null;
+    let confettiParticles = [];
+
+    // ---------------------------------------------------------
+    // CARREGAMENTO E APLICAÇÃO DA CONFIGURAÇÃO
+    // ---------------------------------------------------------
+    function loadConfig() {
+      let merged = { ...DEFAULT_CONFIG };
+
+      try {
+        const savedRaw = localStorage.getItem(STORAGE_KEY);
+        if (savedRaw) {
+          const parsed = JSON.parse(savedRaw);
+          if (parsed && typeof parsed === 'object') {
+            merged = { ...merged, ...parsed };
+          }
+        }
+      } catch (e) {}
+
+      try {
+        const params = new URLSearchParams(window.location.search);
+        if (params.has('nome') && params.get('nome').trim()) {
+          merged.nome = params.get('nome').trim();
+        }
+        if (params.has('msg') && params.get('msg').trim()) {
+          merged.msg = params.get('msg').trim();
+        }
+        if (params.has('foto') && params.get('foto').trim()) {
+          merged.foto = params.get('foto').trim();
+        }
+        if (params.has('email')) {
+          merged.email = params.get('email').trim();
+        }
+        if (params.has('assunto') && params.get('assunto').trim()) {
+          merged.assunto = params.get('assunto').trim();
+        }
+      } catch (e) {}
+
+      config = merged;
+    }
+
+    function applyConfigToUI() {
+      const revealNameEl = document.getElementById('reveal-name');
+      const revealMsgEl = document.getElementById('reveal-message');
+      const photoFrame = document.getElementById('reveal-photo-frame');
+      const photoImg = document.getElementById('reveal-photo-img');
+      const emailBadge = document.getElementById('email-target-badge');
+
+      if (revealNameEl) {
+        revealNameEl.textContent = config.nome || DEFAULT_CONFIG.nome;
+      }
+      if (revealMsgEl) {
+        revealMsgEl.textContent = config.msg || DEFAULT_CONFIG.msg;
+      }
+
+      if (photoFrame && photoImg) {
+        if (config.foto && config.foto.trim() !== '') {
+          photoImg.src = config.foto.trim();
+          photoFrame.classList.remove('hidden');
+        } else {
+          photoImg.removeAttribute('src');
+          photoFrame.classList.add('hidden');
+        }
+      }
+
+      if (emailBadge) {
+        const cleanEmail = (config.email || '').trim();
+        emailBadge.textContent = cleanEmail ? `Para: ${cleanEmail}` : '';
+      }
+    }
+
+    function handleRevealImageError() {
+      const photoFrame = document.getElementById('reveal-photo-frame');
+      if (photoFrame) {
+        photoFrame.classList.add('hidden');
+      }
+    }
+
+    function handleRevealImageError() {
+      const photoImg = document.getElementById('reveal-photo-img');
+      const photoPlaceholder = document.getElementById('reveal-photo-placeholder');
+      photoImg.classList.add('hidden');
+      photoPlaceholder.classList.remove('hidden');
+    }
+
+    // ---------------------------------------------------------
+    // MOTOR DE ÁUDIO SINTETIZADO (WEB AUDIO API)
+    // ---------------------------------------------------------
+    function ensureAudioContext() {
+      try {
+        if (!audioCtx) {
+          const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+          if (AudioContextClass) {
+            audioCtx = new AudioContextClass();
+          }
+        }
+        if (audioCtx && audioCtx.state === 'suspended') {
+          audioCtx.resume();
+        }
+      } catch (e) {}
+    }
+
+    function toggleSound() {
+      soundEnabled = !soundEnabled;
+      const iconEl = document.getElementById('sound-icon');
+      const labelEl = document.getElementById('sound-label');
+
+      if (iconEl) iconEl.textContent = soundEnabled ? '🔊' : '🔇';
+      if (labelEl) labelEl.textContent = soundEnabled ? 'Som' : 'Mudo';
+
+      if (soundEnabled) {
+        ensureAudioContext();
+        playTone(587.33, 0.1, 'sine', 0.06);
+      }
+    }
+
+    function playTone(freq, duration = 0.15, type = 'sine', gainVal = 0.08) {
+      if (!soundEnabled) return;
+      ensureAudioContext();
+      if (!audioCtx) return;
+
+      try {
+        const now = audioCtx.currentTime;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, now);
+
+        gain.gain.setValueAtTime(0.0001, now);
+        gain.gain.exponentialRampToValueAtTime(gainVal, now + 0.015);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+
+        osc.start(now);
+        osc.stop(now + duration + 0.02);
+      } catch (e) {}
+    }
+
+    function playSparkSound(index) {
+      const notes = [523.25, 587.33, 659.25, 783.99, 880.0, 1046.5];
+      playTone(notes[index % notes.length], 0.18, 'triangle', 0.09);
+    }
+
+    function playPhaseSuccessSound() {
+      playTone(523.25, 0.16, 'sine', 0.08);
+      setTimeout(() => playTone(659.25, 0.24, 'sine', 0.09), 110);
+    }
+
+    function playRevealFanfare() {
+      const chord = [523.25, 659.25, 783.99, 1046.5];
+      chord.forEach((freq, idx) => {
+        setTimeout(() => playTone(freq, 0.35, 'triangle', 0.085), idx * 95);
+      });
+    }
+
+    // ---------------------------------------------------------
+    // CONTROLE DE TELAS E FLUXO DO JOGO
+    // ---------------------------------------------------------
+    function updateStepIndicators(screenId) {
+      const d1 = document.getElementById('step-dot-1');
+      const d2 = document.getElementById('step-dot-2');
+      const d3 = document.getElementById('step-dot-3');
+      if (!d1 || !d2 || !d3) return;
+
+      const baseClass = 'h-1.5 w-6 rounded-full transition-colors duration-300';
+      d1.className = `${baseClass} bg-borderSubtle`;
+      d2.className = `${baseClass} bg-borderSubtle`;
+      d3.className = `${baseClass} bg-borderSubtle`;
+
+      if (screenId === 'screen-phase-1') {
+        d1.className = `${baseClass} bg-gold`;
+      } else if (screenId === 'screen-phase-2') {
+        d1.className = `${baseClass} bg-sage`;
+        d2.className = `${baseClass} bg-gold`;
+      } else if (screenId === 'screen-phase-3') {
+        d1.className = `${baseClass} bg-sage`;
+        d2.className = `${baseClass} bg-sage`;
+        d3.className = `${baseClass} bg-gold`;
+      } else if (screenId === 'screen-reveal') {
+        d1.className = `${baseClass} bg-sage`;
+        d2.className = `${baseClass} bg-sage`;
+        d3.className = `${baseClass} bg-sage`;
+      }
+    }
+
+    function switchScreen(screenId) {
+      const screens = [
+        'screen-intro',
+        'screen-phase-1',
+        'screen-phase-2',
+        'screen-phase-3',
+        'screen-reveal',
+      ];
+
+      screens.forEach((id) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        if (id === screenId) {
+          el.classList.remove('hidden');
+          el.classList.remove('animate-screen');
+          void el.offsetWidth;
+          el.classList.add('animate-screen');
+        } else {
+          el.classList.add('hidden');
+        }
+      });
+
+      currentScreen = screenId;
+      updateStepIndicators(screenId);
+    }
+
+    function cancelAllGameLoops() {
+      if (tunerAnimId) {
+        cancelAnimationFrame(tunerAnimId);
+        tunerAnimId = null;
+      }
+      if (sparksAnimId) {
+        cancelAnimationFrame(sparksAnimId);
+        sparksAnimId = null;
+      }
+      if (holdAnimId) {
+        cancelAnimationFrame(holdAnimId);
+        holdAnimId = null;
+      }
+      isHolding = false;
+    }
+
+    function startGame() {
+      ensureAudioContext();
+      playTone(440, 0.12, 'sine', 0.07);
+      stopConfetti();
+      startPhase1();
+    }
+
+    function resetGame() {
+      cancelAllGameLoops();
+      stopConfetti();
+      switchScreen('screen-intro');
+    }
+
+    // ---------------------------------------------------------
+    // FASE 1 / 3: SINTONIZE O SINAL
+    // ---------------------------------------------------------
+    function startPhase1() {
+      cancelAllGameLoops();
+      phase1Locked = false;
+      tunerPos = 6;
+      tunerDir = 1;
+      tunerTargetWidth = 28;
+      tunerTargetStart = 30 + Math.floor(Math.random() * 14);
+
+      const targetEl = document.getElementById('tuner-target');
+      const cursorEl = document.getElementById('tuner-cursor');
+      const feedbackEl = document.getElementById('tuner-feedback');
+      const tuneBtn = document.getElementById('btn-tune');
+
+      if (targetEl) {
+        targetEl.style.left = `${tunerTargetStart}%`;
+        targetEl.style.width = `${tunerTargetWidth}%`;
+        targetEl.className =
+          'absolute top-0 bottom-0 bg-gold/20 border-x-2 border-gold transition-colors duration-200';
+      }
+      if (cursorEl) {
+        cursorEl.style.left = `${tunerPos}%`;
+      }
+      if (feedbackEl) {
+        feedbackEl.textContent = 'Aguardando frequência...';
+        feedbackEl.className = 'text-center text-xs font-medium h-4 text-muted transition-colors';
+      }
+      if (tuneBtn) {
+        tuneBtn.disabled = false;
+      }
+
+      switchScreen('screen-phase-1');
+
+      let lastTime = performance.now();
+      const speedPerSec = 74;
+
+      function animateTuner(now) {
+        if (currentScreen !== 'screen-phase-1' || phase1Locked) return;
+        const dt = Math.min((now - lastTime) / 1000, 0.05);
+        lastTime = now;
+
+        tunerPos += tunerDir * speedPerSec * dt;
+        if (tunerPos >= 95) {
+          tunerPos = 95;
+          tunerDir = -1;
+        } else if (tunerPos <= 5) {
+          tunerPos = 5;
+          tunerDir = 1;
+        }
+
+        if (cursorEl) {
+          cursorEl.style.left = `${tunerPos}%`;
+        }
+
+        tunerAnimId = requestAnimationFrame(animateTuner);
+      }
+
+      tunerAnimId = requestAnimationFrame(animateTuner);
+    }
+
+    function attemptTune() {
+      if (phase1Locked || currentScreen !== 'screen-phase-1') return;
+      ensureAudioContext();
+
+      const targetEnd = tunerTargetStart + tunerTargetWidth;
+      const isHit = tunerPos >= tunerTargetStart && tunerPos <= targetEnd;
+      const feedbackEl = document.getElementById('tuner-feedback');
+      const targetEl = document.getElementById('tuner-target');
+      const wrapperEl = document.getElementById('tuner-wrapper');
+      const tuneBtn = document.getElementById('btn-tune');
+
+      if (isHit) {
+        phase1Locked = true;
+        if (tunerAnimId) {
+          cancelAnimationFrame(tunerAnimId);
+          tunerAnimId = null;
+        }
+        if (tuneBtn) tuneBtn.disabled = true;
+        if (targetEl) {
+          targetEl.className =
+            'absolute top-0 bottom-0 bg-sage/30 border-x-2 border-sage transition-colors duration-200';
+        }
+        if (feedbackEl) {
+          feedbackEl.textContent = 'Sinal sintonizado! ✨';
+          feedbackEl.className = 'text-center text-xs font-medium h-4 text-sage transition-colors';
+        }
+
+        playPhaseSuccessSound();
+        setTimeout(() => {
+          startPhase2();
+        }, 600);
+      } else {
+        playTone(195, 0.14, 'triangle', 0.08);
+        if (feedbackEl) {
+          feedbackEl.textContent = 'Quase! Tente parar dentro da faixa dourada.';
+          feedbackEl.className = 'text-center text-xs font-medium h-4 text-coral transition-colors';
+        }
+        if (wrapperEl) {
+          wrapperEl.classList.remove('animate-shake');
+          void wrapperEl.offsetWidth;
+          wrapperEl.classList.add('animate-shake');
+        }
+      }
+    }
+
+    // ---------------------------------------------------------
+    // FASE 2 / 3: CAPTURE AS FAÍSCAS
+    // ---------------------------------------------------------
+    function startPhase2() {
+      cancelAllGameLoops();
+      sparksCollected = 0;
+      sparksList = [];
+      document.getElementById('sparks-count').textContent = '0';
+
+      switchScreen('screen-phase-2');
+
+      const arena = document.getElementById('sparks-arena');
+      arena.innerHTML = '';
+
+      const arenaW = arena.clientWidth || 320;
+      const arenaH = arena.clientHeight || 240;
+      const pad = 28;
+
+      for (let i = 0; i < TOTAL_SPARKS; i++) {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.setAttribute('aria-label', `Capturar faísca ${i + 1}`);
+        btn.className =
+          'game-interactive spark-glow absolute w-11 h-11 -translate-x-1/2 -translate-y-1/2 rounded-full bg-gold/15 border border-gold/50 text-gold text-lg flex items-center justify-center shadow-lg hover:scale-110 active:scale-90 transition-transform cursor-pointer';
+        btn.textContent = '✦';
+
+        const x = pad + Math.random() * Math.max(40, arenaW - pad * 2);
+        const y = pad + Math.random() * Math.max(40, arenaH - pad * 2);
+        const angle = Math.random() * Math.PI * 2;
+        const speed = 38 + Math.random() * 26;
+
+        const sparkObj = {
+          id: i,
+          el: btn,
+          x,
+          y,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed,
+          collected: false,
+        };
+
+        btn.style.left = `${x}px`;
+        btn.style.top = `${y}px`;
+
+        btn.addEventListener('pointerdown', (e) => {
+          e.preventDefault();
+          collectSpark(sparkObj);
+        });
+
+        arena.appendChild(btn);
+        sparksList.push(sparkObj);
+      }
+
+      let lastTime = performance.now();
+      function animateSparks(now) {
+        if (currentScreen !== 'screen-phase-2') return;
+        const dt = Math.min((now - lastTime) / 1000, 0.05);
+        lastTime = now;
+
+        const w = arena.clientWidth || 320;
+        const h = arena.clientHeight || 240;
+
+        sparksList.forEach((s) => {
+          if (s.collected) return;
+          s.x += s.vx * dt;
+          s.y += s.vy * dt;
+
+          if (s.x <= pad) {
+            s.x = pad;
+            s.vx = Math.abs(s.vx);
+          } else if (s.x >= w - pad) {
+            s.x = w - pad;
+            s.vx = -Math.abs(s.vx);
+          }
+
+          if (s.y <= pad) {
+            s.y = pad;
+            s.vy = Math.abs(s.vy);
+          } else if (s.y >= h - pad) {
+            s.y = h - pad;
+            s.vy = -Math.abs(s.vy);
+          }
+
+          s.el.style.left = `${s.x}px`;
+          s.el.style.top = `${s.y}px`;
+        });
+
+        sparksAnimId = requestAnimationFrame(animateSparks);
+      }
+
+      sparksAnimId = requestAnimationFrame(animateSparks);
+    }
+
+    function collectSpark(sparkObj) {
+      if (sparkObj.collected) return;
+      sparkObj.collected = true;
+      playSparkSound(sparksCollected);
+
+      sparkObj.el.style.transition = 'transform 0.25s ease, opacity 0.25s ease';
+      sparkObj.el.style.transform = 'translate(-50%, -50%) scale(1.6)';
+      sparkObj.el.style.opacity = '0';
+      sparkObj.el.style.pointerEvents = 'none';
+
+      sparksCollected++;
+      document.getElementById('sparks-count').textContent = String(sparksCollected);
+
+      if (sparksCollected >= TOTAL_SPARKS) {
+        playPhaseSuccessSound();
+        setTimeout(() => {
+          startPhase3();
+        }, 550);
+      }
+    }
+
+    // ---------------------------------------------------------
+    // FASE 3 / 3: DECODIFIQUE A MENSAGEM
+    // ---------------------------------------------------------
+    function generateScrambledString(target, progress) {
+      const cleanTarget = String(target || 'Giovanna');
+      const totalChars = cleanTarget.length;
+      const lockedCount = Math.floor(progress * totalChars);
+
+      let result = '';
+      for (let i = 0; i < totalChars; i++) {
+        const ch = cleanTarget[i];
+        if (ch === ' ') {
+          result += ' ';
+        } else if (i < lockedCount) {
+          result += ch;
+        } else {
+          const randIdx = Math.floor(Math.random() * SCRAMBLE_CHARS.length);
+          result += SCRAMBLE_CHARS[randIdx];
+        }
+      }
+      return result;
+    }
+
+    function updateHoldRingVisual(progress) {
+      const circle = document.getElementById('hold-progress-circle');
+      if (!circle) return;
+      circle.style.strokeDasharray = `${RING_CIRCUMFERENCE}`;
+      const offset = RING_CIRCUMFERENCE * (1 - Math.max(0, Math.min(1, progress)));
+      circle.style.strokeDashoffset = `${offset}`;
+    }
+
+    function startPhase3() {
+      cancelAllGameLoops();
+      isHolding = false;
+      holdProgress = 0;
+      phase3Completed = false;
+
+      updateHoldRingVisual(0);
+      document.getElementById('decode-name-display').textContent = generateScrambledString(config.nome, 0);
+      document.getElementById('hold-status-text').textContent = 'Pressione e segure por 1,8s';
+
+      switchScreen('screen-phase-3');
+
+      let lastTime = performance.now();
+      let lastTickTone = 0;
+
+      function animateHold(now) {
+        if (currentScreen !== 'screen-phase-3' || phase3Completed) return;
+        const dt = Math.min(now - lastTime, 50);
+        lastTime = now;
+
+        if (isHolding) {
+          holdProgress = Math.min(1, holdProgress + dt / HOLD_DURATION_MS);
+          document.getElementById('hold-status-text').textContent = 'Decodificando...';
+
+          if (now - lastTickTone > 140) {
+            lastTickTone = now;
+            playTone(340 + holdProgress * 440, 0.08, 'sine', 0.045);
+          }
+        } else if (holdProgress > 0) {
+          holdProgress = Math.max(0, holdProgress - dt / (HOLD_DURATION_MS * 0.75));
+          document.getElementById('hold-status-text').textContent = 'Continue segurando até completar...';
+        }
+
+        updateHoldRingVisual(holdProgress);
+        document.getElementById('decode-name-display').textContent = generateScrambledString(
+          config.nome,
+          holdProgress
+        );
+
+        if (holdProgress >= 1) {
+          phase3Completed = true;
+          isHolding = false;
+          document.getElementById('decode-name-display').textContent = config.nome;
+          document.getElementById('hold-status-text').textContent = 'Desbloqueado! ✨';
+          playRevealFanfare();
+
+          setTimeout(() => {
+            showRevealScreen();
+          }, 550);
+          return;
+        }
+
+        holdAnimId = requestAnimationFrame(animateHold);
+      }
+
+      holdAnimId = requestAnimationFrame(animateHold);
+    }
+
+    function setupHoldEvents() {
+      const holdBtn = document.getElementById('btn-hold-decode');
+      if (!holdBtn) return;
+
+      const beginHold = (e) => {
+        if (phase3Completed) return;
+        if (e) e.preventDefault();
+        ensureAudioContext();
+        isHolding = true;
+      };
+
+      const endHold = () => {
+        isHolding = false;
+      };
+
+      holdBtn.addEventListener('pointerdown', beginHold);
+      holdBtn.addEventListener('contextmenu', (e) => e.preventDefault());
+      window.addEventListener('pointerup', endHold);
+      window.addEventListener('pointercancel', endHold);
+    }
+
+    // ---------------------------------------------------------
+    // TELA FINAL: REVELAÇÃO, CONFETES E RESPOSTA POR E-MAIL
+    // ---------------------------------------------------------
+    function showRevealScreen() {
+      applyConfigToUI();
+      switchScreen('screen-reveal');
+      launchConfetti();
+    }
+
+    function getComposedEmailDetails() {
+      const userTyped = document.getElementById('reply-textarea').value.trim();
+      const bodyText =
+        userTyped ||
+        `Oi! Acabei de jogar o minigame que você fez 😄`;
+      const targetEmail = (config.email || '').trim();
+      const subjectText = (config.assunto || DEFAULT_CONFIG.assunto).trim();
+
+      return { targetEmail, subjectText, bodyText, userTyped };
+    }
+
+    function handleSendEmail() {
+      const { targetEmail, subjectText, bodyText } = getComposedEmailDetails();
+
+      const mailtoUri =
+        `mailto:${encodeURIComponent(targetEmail)}` +
+        `?subject=${encodeURIComponent(subjectText)}` +
+        `&body=${encodeURIComponent(bodyText)}`;
+
+      if (!targetEmail) {
+        showToast('✉️', 'Abrindo e-mail (configure seu endereço em Personalizar)');
+      } else {
+        showToast('✉️', `Abrindo seu app de e-mail para ${targetEmail}...`);
+      }
+
+      window.location.href = mailtoUri;
+    }
+
+    function handleCopyEmailAndMessage() {
+      const { targetEmail, subjectText, bodyText } = getComposedEmailDetails();
+
+      const formattedParts = [];
+      if (targetEmail) formattedParts.push(`Para: ${targetEmail}`);
+      formattedParts.push(`Assunto: ${subjectText}`);
+      formattedParts.push(`Mensagem: ${bodyText}`);
+
+      const fullClipboardText = formattedParts.join('\n');
+
+      if (copyToClipboard(fullClipboardText)) {
+        showToast('✨', 'Copiado!');
+      } else {
+        showToast('⚠️', 'Não foi possível copiar automaticamente.');
+      }
+    }
+
+    // ---------------------------------------------------------
+    // CONFETES SUTIS E ELEGANTES EM CANVAS
+    // ---------------------------------------------------------
+    function launchConfetti() {
+      const canvas = document.getElementById('confetti-canvas');
+      const ctx = canvas.getContext('2d');
+      canvas.classList.remove('hidden');
+
+      function resizeCanvas() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+      }
+      resizeCanvas();
+      window.addEventListener('resize', resizeCanvas);
+
+      const palette = ['#E5B96F', '#D97B66', '#F4F1EA', '#7FA88A'];
+      confettiParticles = [];
+
+      for (let i = 0; i < 85; i++) {
+        confettiParticles.push({
+          x: Math.random() * canvas.width,
+          y: Math.random() * -canvas.height - 20,
+          w: 6 + Math.random() * 6,
+          h: 4 + Math.random() * 8,
+          color: palette[i % palette.length],
+          vy: 1.4 + Math.random() * 2.2,
+          vx: -0.9 + Math.random() * 1.8,
+          rotation: Math.random() * 360,
+          vRot: -3 + Math.random() * 6,
+          opacity: 0.85 + Math.random() * 0.15,
+        });
+      }
+
+      let elapsed = 0;
+      let lastTime = performance.now();
+
+      function renderConfetti(now) {
+        const dt = now - lastTime;
+        lastTime = now;
+        elapsed += dt;
+
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        let activeCount = 0;
+        confettiParticles.forEach((p) => {
+          p.x += p.vx;
+          p.y += p.vy;
+          p.rotation += p.vRot;
+
+          // Fade suave após 4.5 segundos
+          if (elapsed > 4500) {
+            p.opacity = Math.max(0, p.opacity - 0.008);
+          }
+
+          if (p.y < canvas.height + 30 && p.opacity > 0.01) {
+            activeCount++;
+            ctx.save();
+            ctx.translate(p.x, p.y);
+            ctx.rotate((p.rotation * Math.PI) / 180);
+            ctx.globalAlpha = p.opacity;
+            ctx.fillStyle = p.color;
+            ctx.beginPath();
+            ctx.roundRect(-p.w / 2, -p.h / 2, p.w, p.h, 2);
+            ctx.fill();
+            ctx.restore();
+          }
+        });
+
+        if (activeCount > 0) {
+          confettiAnimId = requestAnimationFrame(renderConfetti);
+        } else {
+          stopConfetti();
+        }
+      }
+
+      if (confettiAnimId) cancelAnimationFrame(confettiAnimId);
+      confettiAnimId = requestAnimationFrame(renderConfetti);
+    }
+
+    function stopConfetti() {
+      if (confettiAnimId) {
+        cancelAnimationFrame(confettiAnimId);
+        confettiAnimId = null;
+      }
+      const canvas = document.getElementById('confetti-canvas');
+      canvas.classList.add('hidden');
+    }
+
+    // ---------------------------------------------------------
+    // PAINEL DE PERSONALIZAÇÃO, FOTO, LINK E EXPORTAÇÃO HTML
+    // ---------------------------------------------------------
+    function openPersonalizeModal() {
+      document.getElementById('input-nome').value = config.nome;
+      document.getElementById('input-msg').value = config.msg;
+      document.getElementById('input-email').value = config.email;
+      document.getElementById('input-assunto').value = config.assunto;
+
+      draftPhotoData = config.foto || '';
+      const isDataUrl = draftPhotoData.startsWith('data:image/');
+      document.getElementById('input-foto-url').value = isDataUrl ? '' : draftPhotoData;
+      document.getElementById('input-foto-file').value = '';
+      updateModalPhotoPreview(draftPhotoData);
+
+      document.getElementById('personalize-modal').classList.remove('hidden');
+    }
+
+    function closePersonalizeModal() {
+      document.getElementById('personalize-modal').classList.add('hidden');
+    }
+
+    function updateModalPhotoPreview(src) {
+      const previewImg = document.getElementById('modal-photo-preview');
+      const emptyIcon = document.getElementById('modal-photo-empty');
+      const removeBtn = document.getElementById('btn-remove-photo');
+
+      if (src && src.trim() !== '') {
+        previewImg.src = src.trim();
+        previewImg.classList.remove('hidden');
+        emptyIcon.classList.add('hidden');
+        removeBtn.classList.remove('hidden');
+      } else {
+        previewImg.removeAttribute('src');
+        previewImg.classList.add('hidden');
+        emptyIcon.classList.remove('hidden');
+        removeBtn.classList.add('hidden');
+      }
+    }
+
+    function handleModalPreviewError() {
+      const previewImg = document.getElementById('modal-photo-preview');
+      const emptyIcon = document.getElementById('modal-photo-empty');
+      previewImg.classList.add('hidden');
+      emptyIcon.classList.remove('hidden');
+    }
+
+    function handlePhotoUrlInput(urlVal) {
+      draftPhotoData = urlVal.trim();
+      updateModalPhotoPreview(draftPhotoData);
+    }
+
+    function removeConfiguredPhoto() {
+      draftPhotoData = '';
+      document.getElementById('input-foto-url').value = '';
+      document.getElementById('input-foto-file').value = '';
+      updateModalPhotoPreview('');
+    }
+
+    function handlePhotoFileUpload(event) {
+      const file = event.target.files && event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function (loadEvent) {
+        const img = new Image();
+        img.onload = function () {
+          // Redimensiona proporcionalmente via <canvas> para no máximo 480x480px em JPEG
+          const MAX_SIZE = 480;
+          let targetW = img.width;
+          let targetH = img.height;
+
+          if (targetW > MAX_SIZE || targetH > MAX_SIZE) {
+            if (targetW > targetH) {
+              targetH = Math.round((targetH * MAX_SIZE) / targetW);
+              targetW = MAX_SIZE;
+            } else {
+              targetW = Math.round((targetW * MAX_SIZE) / targetH);
+              targetH = MAX_SIZE;
+            }
+          }
+
+          const offscreenCanvas = document.createElement('canvas');
+          offscreenCanvas.width = targetW;
+          offscreenCanvas.height = targetH;
+
+          const ctx = offscreenCanvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, targetW, targetH);
+
+          draftPhotoData = offscreenCanvas.toDataURL('image/jpeg', 0.82);
+          document.getElementById('input-foto-url').value = '';
+          updateModalPhotoPreview(draftPhotoData);
+          showToast('📷', 'Foto carregada e otimizada!');
+        };
+        img.src = loadEvent.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function readModalInputs() {
+      const nomeVal = document.getElementById('input-nome').value.trim();
+      const msgVal = document.getElementById('input-msg').value.trim();
+      const emailVal = document.getElementById('input-email').value.trim();
+      const assuntoVal = document.getElementById('input-assunto').value.trim();
+      const urlFieldVal = document.getElementById('input-foto-url').value.trim();
+
+      const finalPhoto = draftPhotoData.startsWith('data:image/')
+        ? draftPhotoData
+        : urlFieldVal;
+
+      return {
+        nome: nomeVal || DEFAULT_CONFIG.nome,
+        msg: msgVal || DEFAULT_CONFIG.msg,
+        foto: finalPhoto,
+        email: emailVal,
+        assunto: assuntoVal || DEFAULT_CONFIG.assunto,
+      };
+    }
+
+    function persistConfig() {
+      config = readModalInputs();
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
+      } catch (e) {}
+      applyConfigToUI();
+    }
+
+    function saveAndTestConfig() {
+      persistConfig();
+      closePersonalizeModal();
+      resetGame();
+      showToast('✅', 'Alterações salvas! Clique em Começar para jogar.');
+    }
+
+    function saveAndPreviewReveal() {
+      persistConfig();
+      closePersonalizeModal();
+      cancelAllGameLoops();
+      showRevealScreen();
+      showToast('✨', 'Pré-visualizando a tela final!');
+    }
+
+    function copyPersonalizedLink() {
+      persistConfig();
+
+      const baseUrl = window.location.origin + window.location.pathname;
+      const params = new URLSearchParams();
+      params.set('nome', config.nome);
+      params.set('msg', config.msg);
+      if (config.email) params.set('email', config.email);
+      if (config.assunto) params.set('assunto', config.assunto);
+
+      const isLocalUpload = config.foto && config.foto.startsWith('data:image/');
+      if (config.foto && !isLocalUpload) {
+        params.set('foto', config.foto);
+      }
+
+      const fullUrl = `${baseUrl}?${params.toString()}`;
+
+      try {
+        window.history.replaceState(null, '', `?${params.toString()}`);
+      } catch (e) {}
+
+      if (copyToClipboard(fullUrl)) {
+        if (isLocalUpload) {
+          showToast('🔗', 'Link copiado! Para incluir foto local, baixe o .html.');
+        } else {
+          showToast('🔗', 'Link personalizado copiado!');
+        }
+      } else {
+        showToast('⚠️', 'Não foi possível copiar o link automaticamente.');
+      }
+    }
+
+    function downloadStandaloneHTML() {
+      persistConfig();
+
+      // Garante que o modal esteja oculto e o jogo na tela inicial no HTML exportado
+      const modalEl = document.getElementById('personalize-modal');
+      const wasModalOpen = !modalEl.classList.contains('hidden');
+      modalEl.classList.add('hidden');
+      stopConfetti();
+      switchScreen('screen-intro');
+
+      // Serializa o documento completo e injeta o novo DEFAULT_CONFIG diretamente no script
+      let fullHtml = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
+      const serializedConfig = JSON.stringify(config, null, 2);
+      fullHtml = fullHtml.replace(
+        /\/\*__CONFIG_START__\*\/[\s\S]*?\/\*__CONFIG_END__\*\//,
+        `/*__CONFIG_START__*/${serializedConfig}/*__CONFIG_END__*/`
+      );
+
+      if (wasModalOpen) {
+        modalEl.classList.remove('hidden');
+      }
+
+      const slugName = (config.nome || 'voce')
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-|-$/g, '') || 'voce';
+
+      const blob = new Blob([fullHtml], { type: 'text/html;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `mensagem-para-${slugName}.html`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      showToast('⬇️', `Arquivo "mensagem-para-${slugName}.html" baixado!`);
+    }
+
+    // ---------------------------------------------------------
+    // UTILITÁRIOS (CLIPBOARD E TOAST)
+    // ---------------------------------------------------------
+    function copyToClipboard(text) {
+      const textarea = document.createElement('textarea');
+      textarea.value = text;
+      textarea.setAttribute('readonly', '');
+      textarea.style.position = 'fixed';
+      textarea.style.top = '-9999px';
+      textarea.style.left = '-9999px';
+      document.body.appendChild(textarea);
+      textarea.select();
+      textarea.setSelectionRange(0, textarea.value.length);
+
+      let copied = false;
+      try {
+        copied = document.execCommand('copy');
+      } catch (err) {
+        copied = false;
+      }
+      document.body.removeChild(textarea);
+      return copied;
+    }
+
+    function showToast(icon, text) {
+      const toast = document.getElementById('toast');
+      document.getElementById('toast-icon').textContent = icon;
+      document.getElementById('toast-text').textContent = text;
+
+      toast.classList.remove('opacity-0', '-translate-y-2');
+      toast.classList.add('opacity-100', 'translate-y-0');
+
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => {
+        toast.classList.add('opacity-0', '-translate-y-2');
+        toast.classList.remove('opacity-100', 'translate-y-0');
+      }, 3200);
+    }
+
+    // ---------------------------------------------------------
+    // INICIALIZAÇÃO DA PÁGINA
+    // ---------------------------------------------------------
+    function initApp() {
+      loadConfig();
+      applyConfigToUI();
+      setupHoldEvents();
+      updateStepIndicators('screen-intro');
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initApp);
+    } else {
+      initApp();
+    }
+  </script>
+</body>
+</html>
